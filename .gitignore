@@ -1,0 +1,86 @@
+# =============================================================================
+# .gitignore — files git should NEVER track
+# =============================================================================
+# Why this matters:
+#   - Secrets (.env) leaking to GitHub is the most common security incident
+#     for solo developers. NEVER commit .env.
+#   - Model weights (multi-GB files) bloat git history and cost money to host.
+#     We publish those to HuggingFace Hub instead.
+#   - Build artifacts (__pycache__, .ipynb_checkpoints) are noise.
+# =============================================================================
+
+
+# --- Secrets — NEVER commit ---------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.key
+
+
+# --- Python build artifacts ---------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+
+# --- Virtual environments ------------------------------------------------------
+venv/
+.venv/
+env/
+ENV/
+
+
+# --- IDE / editor metadata ----------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+
+# --- Jupyter / notebook artifacts ---------------------------------------------
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+
+# --- Experiment tracking artifacts --------------------------------------------
+# wandb writes a local cache of runs. We don't need it in git — the source
+# of truth is the W&B web dashboard.
+wandb/
+
+
+# --- Model weights — too big for git, published to HF Hub instead -------------
+models/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+# Exception: LoRA adapter configs are small and useful to track
+!models/**/adapter_config.json
+
+
+# --- Cached HuggingFace downloads ---------------------------------------------
+.cache/
+~/.cache/huggingface/
+
+
+# --- Per-example evaluation outputs (large, regenerable) ----------------------
+# We commit the SUMMARY (results.json, ablation_table.csv) but not the
+# per-example dumps which can be re-run from the eval script.
+results/runs/*/per_example.csv
+results/baseline/per_example.csv
+
+
+# --- OS-specific --------------------------------------------------------------
+*.log
+*.tmp
+
+.claude

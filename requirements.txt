@@ -1,0 +1,102 @@
+# =============================================================================
+# Python dependencies for LLM Fine-Tuning project
+# =============================================================================
+# These are the packages we install LOCALLY (on your 6GB machine).
+# They're for: dataset construction, running the evaluation suite,
+# analyzing results, and writing scripts.
+#
+# Heavy GPU training packages (unsloth, bitsandbytes) are NOT here — we install
+# those inside the Colab notebook itself, because:
+#   1. They depend on CUDA which is painful to set up on Windows.
+#   2. Colab has them preinstalled or installs them in seconds.
+#
+# Install on Windows with:
+#     python -m venv venv
+#     venv\Scripts\activate
+#     pip install -r requirements.txt
+# =============================================================================
+
+
+# --- Core HuggingFace stack ----------------------------------------------------
+# transformers: the library that loads any model from HuggingFace Hub
+#               (Mistral, Llama, Qwen, etc.) and exposes a uniform API for
+#               tokenization, generation, training.
+transformers>=4.44.0
+
+# datasets: HuggingFace's library for streaming + manipulating large datasets.
+#           We use it to load training data and to write our eval.jsonl in a
+#           format that integrates with the rest of the pipeline.
+datasets>=2.20.0
+
+# tokenizers: fast Rust-based tokenizer (transformers depends on this).
+#             Pinned to avoid silent breakage when transformers updates.
+tokenizers>=0.19.0
+
+
+# --- Evaluation metrics --------------------------------------------------------
+# evaluate: HuggingFace's wrapper around standard NLP metrics (ROUGE, BLEU,
+#           Exact Match, etc.). Lets us call rouge.compute(...) without
+#           reimplementing the math ourselves.
+evaluate>=0.4.0
+
+# rouge_score: the actual ROUGE implementation under `evaluate`. ROUGE measures
+#              overlap of n-grams between two strings — our primary metric for
+#              "did the model's answer match the reference?"
+rouge_score>=0.1.2
+
+# nltk: tokenization helpers that some metrics (ROUGE) need under the hood.
+nltk>=3.8
+
+# absl-py: indirect dep some metrics need on Windows
+absl-py>=1.4.0
+
+
+# --- LLM-as-Judge (using GPT-4o-mini to score answer quality) -----------------
+# openai: official OpenAI Python client. We use it ONLY to call GPT-4o-mini
+#         to rate fine-tuned model answers from 1-5. Cost: ~$1 for a full
+#         eval run of 50 questions.
+openai>=1.40.0
+
+
+# --- Experiment tracking -------------------------------------------------------
+# wandb: Weights & Biases. Logs training loss curves, hyperparameters, and
+#        evaluation metrics to a public dashboard. Industry standard tool,
+#        free for personal projects. We'll make our dashboard public so it
+#        can be linked in the README.
+wandb>=0.17.0
+
+
+# --- Configuration & data handling --------------------------------------------
+# python-dotenv: loads secrets (API keys) from a .env file into environment
+#                variables. Keeps tokens out of code.
+python-dotenv>=1.0.0
+
+# pyyaml: parses our configs/*.yaml files. Each training run reads its
+#         hyperparameters from a YAML config, which we then freeze into the
+#         results folder for reproducibility.
+pyyaml>=6.0
+
+
+# --- Results analysis & charts ------------------------------------------------
+# pandas: tabular data analysis. We build the ablation comparison table here.
+pandas>=2.0.0
+
+# matplotlib: plots. We make ONE chart for the weekend version:
+#             LoRA rank vs ROUGE-L.
+matplotlib>=3.7.0
+
+
+# --- Notebooks (optional but useful) ------------------------------------------
+# jupyter: lets you open notebooks/*.ipynb locally. The Colab notebook will
+#          also work without this since Colab runs Jupyter itself.
+jupyter>=1.0.0
+
+
+# --- Utilities -----------------------------------------------------------------
+# tqdm: progress bars. When we iterate over 50 eval examples and call the
+#       model on each one, this shows us how far along we are.
+tqdm>=4.65.0
+
+# requests: HTTP client. Useful for fetching docs or pages when building the
+#           eval/training datasets.
+requests>=2.31.0
