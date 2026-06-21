@@ -19,7 +19,7 @@ USAGE PATHS:
 
     Required env vars (load from .env automatically):
       HF_TOKEN          - to download Mistral (it's gated)
-      OPENAI_API_KEY    - for the LLM-judge
+      GEMINI_API_KEY    - for the LLM-judge (Gemini 2.5 Flash, free tier)
 
     Expected runtime on a Colab T4:
       ~5-10 minutes (mostly model loading + 50 generations).
@@ -107,7 +107,7 @@ def main() -> int:
     parser.add_argument(
         "--skip-judge", action="store_true",
         help="Skip the GPT-4o-mini LLM-judge scoring step. Useful with "
-             "--mock to avoid burning OpenAI calls on dummy answers.",
+             "--mock to avoid burning Gemini calls on dummy answers.",
     )
     parser.add_argument(
         "--model", default=config.BASE_MODEL_NAME,

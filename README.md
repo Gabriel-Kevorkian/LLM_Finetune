@@ -42,7 +42,7 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 
 | Block | Hours | Task |
 |-------|-------|------|
-| Sat AM-1 | ~1h | Lock domain. Set up Python env. Install `unsloth`, `trl`, `peft`, `transformers`, `evaluate`, `wandb`, `openai`. Configure HF + OpenAI + W&B tokens. |
+| Sat AM-1 | ~1h | Lock domain. Set up Python env. Install `unsloth`, `trl`, `peft`, `transformers`, `evaluate`, `wandb`, `google-genai`. Configure HF + Gemini + W&B tokens. |
 | Sat AM-2 | ~3h | Hand-build **`data/eval/eval.jsonl`** — **50 verified Q&A pairs** from authoritative source (e.g. official product docs). Lock the file. |
 | Sat PM-1 | ~1h | On Colab: run baseline eval (Mistral-7B zero-shot) over the 50 eval examples. Save `results/baseline/`. |
 | Sat PM-2 | ~2h | Build **`data/train/train_1k.jsonl`** — 1,000 examples from **different** sources (HF dataset like `bitext/Bitext-customer-support-llm-chatbot-training-dataset`, or GPT-4-generated from doc chunks not used in eval). Deduplicate. Spot-check 30 samples. |
@@ -79,7 +79,7 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 LLM_Finetune/
 ├── README.md                       # This file
 ├── requirements.txt                # Python dependencies
-├── .env.example                    # API key template (HF_TOKEN, OPENAI_API_KEY, WANDB_API_KEY)
+├── .env.example                    # API key template (HF_TOKEN, GEMINI_API_KEY, WANDB_API_KEY)
 ├── .gitignore                      # Ignore models/, .env, __pycache__, wandb/
 ├── LLM_Finetune_Project_Brief.pdf  # Original 4-week project spec
 │
@@ -192,7 +192,7 @@ Filled in Sunday afternoon. Empty until then.
 | TRL `SFTTrainer` | Supervised fine-tuning loop              |
 | Weights & Biases | Experiment tracking + public dashboard   |
 | `evaluate`       | ROUGE, EM                                |
-| OpenAI API       | GPT-4o-mini LLM-as-judge (~$1)           |
+| Google Gemini API| Gemini 2.5 Flash LLM-as-judge (free tier)|
 | Pandas + Matplotlib | Ablation table + chart                |
 
 ---

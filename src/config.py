@@ -166,9 +166,10 @@ SEED                  = 42
 EVAL_TEMPERATURE      = 0.0
 EVAL_MAX_NEW_TOKENS   = 512    # cap answer length so eval doesn't hang
 
-# Model used as the LLM-judge. GPT-4o-mini is ~30x cheaper than GPT-4 and
-# good enough to rate answer quality on a 1-5 scale.
-LLM_JUDGE_MODEL       = "gpt-4o-mini"
+# Model used as the LLM-judge. Gemini 2.5 Flash is on Google's free tier
+# (15 RPM, 1500 requests/day) — plenty for our 50-200 judge calls per
+# ablation run, and zero cost. Fast enough to grade a short answer in <1s.
+LLM_JUDGE_MODEL       = "gemini-2.5-flash"
 
 
 # =============================================================================

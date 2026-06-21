@@ -1,24 +1,28 @@
 """
-LLM-as-Judge scoring using GPT-4o-mini.
+LLM-as-Judge scoring using Google Gemini.
 
 WHAT IT DOES:
-    For each (question, reference, prediction) triple, we ask GPT-4o-mini
-    to rate the prediction's quality on a 1-5 scale relative to the
+    For each (question, reference, prediction) triple, we ask Gemini to
+    rate the prediction's quality on a 1-5 scale relative to the
     reference answer. This catches cases that ROUGE misses:
 
         Reference:  "docker ps -a lists every container including stopped ones"
         Prediction: "Use 'docker ps --all' to see all containers, even stopped"
 
     ROUGE-1 here is low (different wording) but the answer is essentially
-    correct. A human judge — or GPT-4o-mini — would rate it 4 or 5.
+    correct. A human judge — or Gemini — would rate it 4 or 5.
 
-WHY GPT-4o-MINI:
-    - ~30x cheaper than GPT-4o ($0.15 vs $5.00 per million input tokens).
-    - Smart enough to grade short technical answers reliably.
-    - A full 50-question eval run costs roughly $0.01 of API spend.
+WHY GEMINI:
+    - Generous free tier (15 RPM, 1500 requests/day on Flash models).
+    - A full 50-question eval run uses 50 calls — well under the daily cap.
+    - Gemini 2.5 Flash is fast and accurate enough for short grading tasks.
+    - The judge model only needs to compare two short strings and return
+      a single digit, so a small/fast model is the right choice.
 
 WHY TEMPERATURE = 0:
     Judging must be reproducible. Same inputs -> same score every run.
+    If the judge was random, our before/after comparison would be polluted
+    by judge noise rather than actual model improvement.
 
 RUBRIC DESIGN:
     A vague prompt ("rate from 1 to 5") gives noisy ratings. We define
@@ -32,9 +36,10 @@ import os
 import re
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-# Load .env so OPENAI_API_KEY is available as an env var. Idempotent —
+# Load .env so GEMINI_API_KEY is available as an env var. Idempotent —
 # safe to call from multiple modules.
 load_dotenv()
 
@@ -64,47 +69,71 @@ includes a meaningful error.
 Reply with ONLY a single integer from 1 to 5. No other text."""
 
 
+# Build the client once at module load — creating it per-call wastes a few ms
+# of TLS handshake on each judge request.
+def _make_client() -> genai.Client:
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY not set. Get a free key at "
+            "https://aistudio.google.com/app/apikey and add it to your .env"
+        )
+    return genai.Client(api_key=api_key)
+
+
+_CLIENT: genai.Client | None = None
+
+
+def _client() -> genai.Client:
+    """Lazy singleton — only instantiate when first needed."""
+    global _CLIENT
+    if _CLIENT is None:
+        _CLIENT = _make_client()
+    return _CLIENT
+
+
 def judge_pair(
     question: str,
     reference: str,
     candidate: str,
     *,
-    model: str = "gpt-4o-mini",
-    client: OpenAI | None = None,
+    model: str = "gemini-2.5-flash",
+    client: genai.Client | None = None,
 ) -> int:
     """Return an integer score from 1 to 5.
 
     Falls back to 1 (worst score) if parsing fails — better to under-credit
     than to silently insert wrong scores into our results.
     """
-    if client is None:
-        # OpenAI() reads OPENAI_API_KEY from env automatically.
-        client = OpenAI()
-
-    # Guard against empty candidate strings (model refused, generation
-    # hit max tokens with nothing useful, etc.). These are real failures
-    # and should score 1 without burning an API call.
+    # Guard against empty candidate strings (model refused, generation hit
+    # max tokens with nothing useful, etc.). These are real failures and
+    # should score 1 without burning an API call.
     if not candidate.strip():
         return 1
 
-    response = client.chat.completions.create(
+    c = client or _client()
+
+    response = c.models.generate_content(
         model=model,
-        messages=[
-            {
-                "role": "user",
-                "content": _JUDGE_PROMPT.format(
-                    question=question,
-                    reference=reference,
-                    candidate=candidate,
-                ),
-            }
-        ],
-        temperature=0.0,
-        max_tokens=4,   # we only need a single digit
+        contents=_JUDGE_PROMPT.format(
+            question=question,
+            reference=reference,
+            candidate=candidate,
+        ),
+        config=types.GenerateContentConfig(
+            temperature=0.0,
+            max_output_tokens=8,  # we only need a single digit
+            # IMPORTANT: Gemini 2.5 models do "thinking" by default, which
+            # consumes output tokens internally before any visible text is
+            # produced. With max_output_tokens=8 the thinking budget eats
+            # everything and response.text comes back as None. We disable
+            # thinking entirely for the judge call — it's a single-digit
+            # rating, there is nothing to reason about.
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
     )
 
-    raw = response.choices[0].message.content or ""
-    return _parse_score(raw)
+    return _parse_score(response.text or "")
 
 
 def _parse_score(raw: str) -> int:
@@ -122,7 +151,7 @@ def _parse_score(raw: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Smoke test (uses 1 API call, costs < $0.001):
+# Smoke test — uses 1 API call (free):
 #     python -m src.eval.llm_judge
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -131,4 +160,4 @@ if __name__ == "__main__":
         reference="docker ps -a. The -a flag includes stopped containers.",
         candidate="Use 'docker ps --all' to list every container including stopped ones.",
     )
-    print(f"LLM-judge score (should be 4 or 5): {score}")
+    print(f"Gemini judge score (should be 4 or 5): {score}")

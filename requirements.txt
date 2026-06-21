@@ -51,11 +51,12 @@ nltk>=3.8
 absl-py>=1.4.0
 
 
-# --- LLM-as-Judge (using GPT-4o-mini to score answer quality) -----------------
-# openai: official OpenAI Python client. We use it ONLY to call GPT-4o-mini
-#         to rate fine-tuned model answers from 1-5. Cost: ~$1 for a full
-#         eval run of 50 questions.
-openai>=1.40.0
+# --- LLM-as-Judge (using Google Gemini to score answer quality) ---------------
+# google-genai: official Google "unified" Gen AI SDK. We use it to call
+#               Gemini 2.5 Flash to rate fine-tuned model answers 1-5.
+#               Free tier: 15 RPM, 1500 requests/day — easily covers our
+#               50-200 judge calls per ablation. Cost: $0.
+google-genai>=0.3.0
 
 
 # --- Experiment tracking -------------------------------------------------------

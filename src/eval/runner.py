@@ -51,7 +51,7 @@ def run_eval(
     run_name: str,
     *,
     use_llm_judge: bool = True,
-    judge_model: str = "gpt-4o-mini",
+    judge_model: str = "gemini-2.5-flash",
     model_id: str = "unknown",
 ) -> dict:
     """Run `generate_fn` over every eval example, score the outputs, save results.
@@ -66,7 +66,7 @@ def run_eval(
                          can identify it later (e.g. "baseline", "r16").
         use_llm_judge  : if False, skip the GPT-4o-mini scoring step (saves
                          API calls during pipeline development).
-        judge_model    : OpenAI model for the judge.
+        judge_model    : Gemini model id for the judge (default Flash).
         model_id       : free-text identifier for the model under test.
 
     Returns:
