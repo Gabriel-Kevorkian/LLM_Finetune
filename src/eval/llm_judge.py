@@ -12,11 +12,14 @@ WHAT IT DOES:
     ROUGE-1 here is low (different wording) but the answer is essentially
     correct. A human judge — or Gemini — would rate it 4 or 5.
 
-WHY GEMINI 2.5 FLASH-LITE:
-    - Free tier: 15 RPM (vs only 5 RPM for gemini-2.5-flash).
-    - Our eval runs 50 judge calls; 5 RPM would 429-throttle after 5 calls.
-    - "Lite" has no internal "thinking" tokens — answers come out cleanly
-      in a single digit, no need for thinking_config workarounds.
+WHY GEMINI 3.1 FLASH-LITE:
+    - Free tier: 15 RPM AND 500 RPD — generous enough to cover all 200
+      judge calls for the weekend (baseline + 3 ablations × 50 questions)
+      with a comfortable margin.
+    - Compare to gemini-2.5-flash-lite (10 RPM, only 20 RPD) which would
+      take 10 days to finish all our judging on free tier.
+    - "Lite" variant skips internal "thinking" tokens, so the response
+      arrives quickly as a clean single digit.
     - Quality is more than enough for a 1-5 rubric grading task.
 
 WHY TEMPERATURE = 0:
@@ -126,7 +129,7 @@ def judge_pair(
     reference: str,
     candidate: str,
     *,
-    model: str = "gemini-2.5-flash-lite",
+    model: str = "gemini-3.1-flash-lite",
     client: genai.Client | None = None,
 ) -> int:
     """Return an integer score from 1 to 5.

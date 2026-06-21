@@ -192,7 +192,7 @@ Filled in Sunday afternoon. Empty until then.
 | TRL `SFTTrainer` | Supervised fine-tuning loop              |
 | Weights & Biases | Experiment tracking + public dashboard   |
 | `evaluate`       | ROUGE, EM                                |
-| Google Gemini API| Gemini 2.5 Flash-Lite LLM-as-judge (free tier, 15 RPM) |
+| Google Gemini API| Gemini 3.1 Flash-Lite LLM-as-judge (free tier, 15 RPM / 500 RPD) |
 | Pandas + Matplotlib | Ablation table + chart                |
 
 ---

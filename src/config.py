@@ -166,12 +166,13 @@ SEED                  = 42
 EVAL_TEMPERATURE      = 0.0
 EVAL_MAX_NEW_TOKENS   = 512    # cap answer length so eval doesn't hang
 
-# Model used as the LLM-judge. gemini-2.5-flash-lite is on Google's free
-# tier at 15 RPM (vs only 5 RPM for the non-lite flash). Plenty for our
-# 50-200 judge calls per ablation run, and zero cost. The "lite" variant
-# also skips Gemini 2.5's internal "thinking" tokens, so the response
-# arrives quickly as a clean single digit.
-LLM_JUDGE_MODEL       = "gemini-2.5-flash-lite"
+# Model used as the LLM-judge. gemini-3.1-flash-lite is on Google's free
+# tier at 15 RPM AND 500 RPD — enough to cover all 200 judge calls for the
+# weekend (baseline + 3 ablations × 50 questions) in a single day, with
+# room to spare. The "lite" variant skips Gemini's internal "thinking"
+# tokens so the response arrives quickly as a clean single digit. Our
+# retry-on-429 logic in src/eval/llm_judge.py absorbs any rate-limit hits.
+LLM_JUDGE_MODEL       = "gemini-3.1-flash-lite"
 
 
 # =============================================================================

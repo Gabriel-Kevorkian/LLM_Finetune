@@ -51,7 +51,7 @@ def run_eval(
     run_name: str,
     *,
     use_llm_judge: bool = True,
-    judge_model: str = "gemini-2.5-flash-lite",
+    judge_model: str = "gemini-3.1-flash-lite",
     model_id: str = "unknown",
 ) -> dict:
     """Run `generate_fn` over every eval example, score the outputs, save results.
