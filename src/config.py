@@ -166,10 +166,12 @@ SEED                  = 42
 EVAL_TEMPERATURE      = 0.0
 EVAL_MAX_NEW_TOKENS   = 512    # cap answer length so eval doesn't hang
 
-# Model used as the LLM-judge. Gemini 2.5 Flash is on Google's free tier
-# (15 RPM, 1500 requests/day) — plenty for our 50-200 judge calls per
-# ablation run, and zero cost. Fast enough to grade a short answer in <1s.
-LLM_JUDGE_MODEL       = "gemini-2.5-flash"
+# Model used as the LLM-judge. gemini-2.5-flash-lite is on Google's free
+# tier at 15 RPM (vs only 5 RPM for the non-lite flash). Plenty for our
+# 50-200 judge calls per ablation run, and zero cost. The "lite" variant
+# also skips Gemini 2.5's internal "thinking" tokens, so the response
+# arrives quickly as a clean single digit.
+LLM_JUDGE_MODEL       = "gemini-2.5-flash-lite"
 
 
 # =============================================================================

@@ -12,12 +12,12 @@ WHAT IT DOES:
     ROUGE-1 here is low (different wording) but the answer is essentially
     correct. A human judge — or Gemini — would rate it 4 or 5.
 
-WHY GEMINI:
-    - Generous free tier (15 RPM, 1500 requests/day on Flash models).
-    - A full 50-question eval run uses 50 calls — well under the daily cap.
-    - Gemini 2.5 Flash is fast and accurate enough for short grading tasks.
-    - The judge model only needs to compare two short strings and return
-      a single digit, so a small/fast model is the right choice.
+WHY GEMINI 2.5 FLASH-LITE:
+    - Free tier: 15 RPM (vs only 5 RPM for gemini-2.5-flash).
+    - Our eval runs 50 judge calls; 5 RPM would 429-throttle after 5 calls.
+    - "Lite" has no internal "thinking" tokens — answers come out cleanly
+      in a single digit, no need for thinking_config workarounds.
+    - Quality is more than enough for a 1-5 rubric grading task.
 
 WHY TEMPERATURE = 0:
     Judging must be reproducible. Same inputs -> same score every run.
@@ -28,19 +28,23 @@ RUBRIC DESIGN:
     A vague prompt ("rate from 1 to 5") gives noisy ratings. We define
     each score level explicitly so the judge clusters around the right
     bucket consistently.
+
+RETRY POLICY:
+    On 429 / 503 we sleep (using the server's suggested retryDelay if
+    present, otherwise exponential backoff) and try again up to MAX_RETRIES
+    times. Other errors propagate immediately.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import time
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# Load .env so GEMINI_API_KEY is available as an env var. Idempotent —
-# safe to call from multiple modules.
 load_dotenv()
 
 
@@ -69,8 +73,10 @@ includes a meaningful error.
 Reply with ONLY a single integer from 1 to 5. No other text."""
 
 
-# Build the client once at module load — creating it per-call wastes a few ms
-# of TLS handshake on each judge request.
+MAX_RETRIES         = 4
+DEFAULT_RETRY_FLOOR = 4   # seconds — minimum wait if server gives no delay
+
+
 def _make_client() -> genai.Client:
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -92,48 +98,82 @@ def _client() -> genai.Client:
     return _CLIENT
 
 
+def _extract_retry_seconds(error_msg: str) -> int | None:
+    """Pull the server-suggested retry delay out of a Gemini 429 error.
+
+    The error JSON contains 'retryDelay': '11s' — we want the 11.
+    Returns None if not present (caller uses its own backoff).
+    """
+    match = re.search(r"retryDelay['\"]?\s*:\s*['\"]?(\d+)", error_msg)
+    if match:
+        # Add 1s buffer to be safe against clock skew / off-by-one quota windows.
+        return int(match.group(1)) + 1
+    return None
+
+
+def _is_retriable(error_msg: str) -> bool:
+    """True for transient errors worth retrying (rate limit, 503)."""
+    return (
+        "429" in error_msg
+        or "RESOURCE_EXHAUSTED" in error_msg
+        or "503" in error_msg
+        or "UNAVAILABLE" in error_msg
+    )
+
+
 def judge_pair(
     question: str,
     reference: str,
     candidate: str,
     *,
-    model: str = "gemini-2.5-flash",
+    model: str = "gemini-2.5-flash-lite",
     client: genai.Client | None = None,
 ) -> int:
     """Return an integer score from 1 to 5.
 
-    Falls back to 1 (worst score) if parsing fails — better to under-credit
-    than to silently insert wrong scores into our results.
+    Falls back to 1 (worst score) if parsing fails or all retries exhausted —
+    better to under-credit than to silently insert wrong scores into results.
     """
     # Guard against empty candidate strings (model refused, generation hit
-    # max tokens with nothing useful, etc.). These are real failures and
-    # should score 1 without burning an API call.
+    # max tokens with nothing useful, etc.). Real failure → score 1, no API call.
     if not candidate.strip():
         return 1
 
     c = client or _client()
 
-    response = c.models.generate_content(
-        model=model,
-        contents=_JUDGE_PROMPT.format(
-            question=question,
-            reference=reference,
-            candidate=candidate,
-        ),
-        config=types.GenerateContentConfig(
-            temperature=0.0,
-            max_output_tokens=8,  # we only need a single digit
-            # IMPORTANT: Gemini 2.5 models do "thinking" by default, which
-            # consumes output tokens internally before any visible text is
-            # produced. With max_output_tokens=8 the thinking budget eats
-            # everything and response.text comes back as None. We disable
-            # thinking entirely for the judge call — it's a single-digit
-            # rating, there is nothing to reason about.
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        ),
+    prompt = _JUDGE_PROMPT.format(
+        question=question, reference=reference, candidate=candidate,
     )
 
-    return _parse_score(response.text or "")
+    cfg = types.GenerateContentConfig(
+        temperature=0.0,
+        max_output_tokens=8,
+        # Disable thinking — harmless on flash-lite (which doesn't think
+        # by default) but defensive in case we ever swap back to 2.5-flash.
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
+    )
+
+    last_err: Exception | None = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = c.models.generate_content(
+                model=model, contents=prompt, config=cfg,
+            )
+            return _parse_score(response.text or "")
+        except Exception as e:
+            last_err = e
+            msg = str(e)
+            if not _is_retriable(msg) or attempt >= MAX_RETRIES:
+                # Non-retriable or out of attempts → propagate; the runner
+                # will catch it and record None as the judge score.
+                raise
+            # Use the server-suggested delay if present; otherwise exponential
+            # backoff starting at DEFAULT_RETRY_FLOOR.
+            wait = _extract_retry_seconds(msg) or DEFAULT_RETRY_FLOOR * (2 ** attempt)
+            time.sleep(wait)
+
+    # Unreachable — defensive fallback.
+    raise last_err or RuntimeError("judge_pair: unreachable code path")
 
 
 def _parse_score(raw: str) -> int:
@@ -144,8 +184,6 @@ def _parse_score(raw: str) -> int:
     """
     match = re.search(r"\b([1-5])\b", raw)
     if match is None:
-        # Defensive: if we can't parse, treat as worst score so the
-        # bad output is visible in results rather than silently averaged.
         return 1
     return int(match.group(1))
 
