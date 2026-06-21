@@ -1,0 +1,94 @@
+{
+  "run_name": "baseline",
+  "model_id": "mistralai/Mistral-7B-v0.3",
+  "num_examples": 50,
+  "use_llm_judge": true,
+  "aggregate": {
+    "n": 50,
+    "rouge1": 0.10464,
+    "rougeL": 0.069624,
+    "exact_match": 0.0,
+    "judge_score": 1
+  },
+  "by_category": {
+    "commands": {
+      "n": 11,
+      "rouge1": 0.09869090909090909,
+      "rougeL": 0.06798181818181818,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "compose": {
+      "n": 5,
+      "rouge1": 0.097,
+      "rougeL": 0.05922,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "dockerfile": {
+      "n": 13,
+      "rouge1": 0.12464615384615385,
+      "rougeL": 0.08023846153846154,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "images": {
+      "n": 4,
+      "rouge1": 0.107975,
+      "rougeL": 0.073425,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "networking": {
+      "n": 4,
+      "rouge1": 0.10455,
+      "rougeL": 0.0757,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "security": {
+      "n": 5,
+      "rouge1": 0.10572,
+      "rougeL": 0.06505999999999999,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "troubleshooting": {
+      "n": 4,
+      "rouge1": 0.08222499999999999,
+      "rougeL": 0.06015,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "volumes": {
+      "n": 4,
+      "rouge1": 0.08335000000000001,
+      "rougeL": 0.05795,
+      "exact_match": 0.0,
+      "judge_score": 1
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "n": 18,
+      "rouge1": 0.09997777777777778,
+      "rougeL": 0.06886111111111111,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "medium": {
+      "n": 26,
+      "rouge1": 0.11303461538461539,
+      "rougeL": 0.0723576923076923,
+      "exact_match": 0.0,
+      "judge_score": 1
+    },
+    "hard": {
+      "n": 6,
+      "rouge1": 0.08225,
+      "rougeL": 0.06006666666666667,
+      "exact_match": 0.0,
+      "judge_score": 1
+    }
+  }
+}
