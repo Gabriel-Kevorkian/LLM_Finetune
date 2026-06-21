@@ -61,19 +61,41 @@ def make_real_generate_fn(model_name: str):
     when --mock is NOT set, the file stays usable in mock mode locally.
     """
     import torch
-    from transformers import AutoTokenizer, AutoModelForCausalLM
+    from transformers import (
+        AutoTokenizer,
+        AutoModelForCausalLM,
+        BitsAndBytesConfig,
+    )
     from src.data.format_prompts import format_chat
 
     print(f"Loading tokenizer: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     print(f"Loading model: {model_name} (this takes ~1-2 minutes)")
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",          # let HF place layers on GPU
-        load_in_4bit=config.LOAD_IN_4BIT,
-    )
+
+    # Modern transformers (>=4.46) requires quantization options to be
+    # wrapped in a BitsAndBytesConfig and passed via quantization_config.
+    # Old API (load_in_4bit=True as a top-level kwarg) is removed.
+    if config.LOAD_IN_4BIT:
+        bnb = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",                # standard 4-bit format
+            bnb_4bit_compute_dtype=torch.bfloat16,    # math happens in bf16
+            bnb_4bit_use_double_quant=True,           # ~0.4 bits/param extra savings
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=bnb,
+            device_map="auto",                        # place layers on GPU
+        )
+    else:
+        # Full-precision path — only viable on a big GPU (>=24GB for 7B).
+        # `dtype` replaced the deprecated `torch_dtype` kwarg.
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            dtype=torch.bfloat16,
+            device_map="auto",
+        )
     model.eval()
 
     def _generate(question: str) -> str:
