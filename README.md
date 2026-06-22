@@ -17,12 +17,16 @@ Scope cuts are listed in section [12. What was cut and why](#12-what-was-cut-and
 | Phase | Status |
 |-------|--------|
 | Timeline | **One weekend (~16–20 focused hours)** |
-| Domain | Tentative: **Technical Support QA** (subject to change before Saturday starts) |
+| Domain | **Docker** (LOCKED — technical support QA subdomain) |
 | Hardware | Local: 6 GB VRAM (dev only). Training: Google Colab free T4 (~15 GB). |
-| Base model | Mistral-7B-v0.3 with 4-bit QLoRA |
-| Evaluation suite | Not built yet |
-| Baseline run | Not run yet |
-| Fine-tune runs | Not run yet |
+| Base model | **mistralai/Mistral-7B-v0.3** with 4-bit QLoRA (LOCKED) |
+| Judge | **gemini-3.1-flash-lite** (free tier 15 RPM / 500 RPD) |
+| Evaluation suite | ✅ Built — `data/eval/eval.jsonl` (50 verified Docker Q&A, LOCKED) |
+| Training set | ✅ Built — `data/train/train_1k.jsonl` (1,000 SO [docker] Q&A, score 52→2509) |
+| Baseline run | ✅ Done — rouge1=0.132, rougeL=0.107, judge=2.28 (see §6) |
+| Fine-tune r=16 | ✅ Done — final loss 1.34 in 52:37 min on T4. Adapter on Drive. Eval pending. |
+| Fine-tune r=8, r=32 (ablation) | ⏳ Sunday |
+| Failure analysis | ⏳ Sunday |
 
 ---
 
@@ -40,25 +44,25 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 
 ### Saturday — Eval + Baseline + First Fine-Tune
 
-| Block | Hours | Task |
-|-------|-------|------|
-| Sat AM-1 | ~1h | Lock domain. Set up Python env. Install `unsloth`, `trl`, `peft`, `transformers`, `evaluate`, `wandb`, `google-genai`. Configure HF + Gemini + W&B tokens. |
-| Sat AM-2 | ~3h | Hand-build **`data/eval/eval.jsonl`** — **50 verified Q&A pairs** from authoritative source (e.g. official product docs). Lock the file. |
-| Sat PM-1 | ~1h | On Colab: run baseline eval (Mistral-7B zero-shot) over the 50 eval examples. Save `results/baseline/`. |
-| Sat PM-2 | ~2h | Build **`data/train/train_1k.jsonl`** — 1,000 examples from **different** sources (HF dataset like `bitext/Bitext-customer-support-llm-chatbot-training-dataset`, or GPT-4-generated from doc chunks not used in eval). Deduplicate. Spot-check 30 samples. |
-| Sat PM-3 | ~2h | First fine-tune on Colab: LoRA r=16, α=16, lr=2e-4, 3 epochs. Save adapter. |
+| Block | Status | Task |
+|-------|--------|------|
+| Sat AM-1 | ✅ | Lock domain (Docker). Set up Python env. Install `unsloth`, `trl`, `peft`, `transformers`, `evaluate`, `wandb`, `google-genai`. Configure HF + Gemini + W&B tokens. |
+| Sat AM-2 | ✅ | Hand-build **`data/eval/eval.jsonl`** — 50 verified Docker Q&A from `docs.docker.com`. Locked. |
+| Sat PM-1 | ✅ | On Colab: baseline eval (Mistral-7B zero-shot) over the 50 eval examples. Saved to `results/baseline/`. |
+| Sat PM-2 | ✅ | Built **`data/train/train_1k.jsonl`** — 1,000 SO [docker] Q&A via Stack Exchange API + `all-MiniLM-L6-v2` cosine-≥0.75 dedup vs eval (43 paraphrases dropped). |
+| Sat PM-3 | ✅ | First fine-tune on Colab: LoRA r=16, α=16, lr=2e-4, 3 epochs. Adapter saved to Drive. |
 
-**End of Saturday goal:** baseline scored, first fine-tuned adapter saved.
+**End of Saturday goal:** baseline scored, first fine-tuned adapter saved. ✅
 
 ### Sunday — Evaluate, One Ablation Axis, Polish
 
-| Block | Hours | Task |
-|-------|-------|------|
-| Sun AM-1 | ~1h | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. |
-| Sun AM-2 | ~3h | **Single ablation axis: LoRA rank.** Train r=8 and r=32 (keeping data, lr, epochs constant). Eval both. |
-| Sun PM-1 | ~2h | Compile `results/ablation_table.csv` and a single matplotlib chart (rank vs ROUGE-L). |
-| Sun PM-2 | ~2h | **Failure analysis:** pick 5 fine-tuned-model failures, categorize (hallucination / refusal / formatting / OOD), write `results/failure_analysis.md`. |
-| Sun PM-3 | ~1h | Update the results table in this README. Make the W&B dashboard public. Push to GitHub. |
+| Block | Status | Task |
+|-------|--------|------|
+| Sun AM-1 | ⏳ NEXT | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. |
+| Sun AM-2 | ⏳ | **Single ablation axis: LoRA rank.** Train r=8 and r=32 (keeping data, lr, epochs constant). Eval both. |
+| Sun PM-1 | ⏳ | Compile `results/ablation_table.csv` and a single matplotlib chart (rank vs ROUGE-L). |
+| Sun PM-2 | ⏳ | **Failure analysis:** pick 5 fine-tuned-model failures, categorize (hallucination / refusal / formatting / OOD), write `results/failure_analysis.md`. |
+| Sun PM-3 | ⏳ | Update the results table in this README. Make the W&B dashboard public. Push to GitHub. |
 
 **End of Sunday goal:** results table filled, ablation chart in repo, README finalized.
 
@@ -175,9 +179,24 @@ Two evaluation dimensions for the weekend version, both in `src/eval/runner.py`:
 | Model                       | ROUGE-1 | ROUGE-L | LLM-Judge (1–5) | Notes                          |
 |-----------------------------|---------|---------|------------------|--------------------------------|
 | Mistral-7B-v0.3 base        | 0.132   | 0.107   | 2.28             | Zero-shot baseline (50 q, T4)  |
-| + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank                     |
-| + LoRA r=16, 1K data        | TBD     | TBD     | TBD              | Default                        |
-| + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank                    |
+| + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank (Sunday)            |
+| + LoRA r=16, 1K data        | TBD     | TBD     | TBD              | Default — trained, eval pending |
+| + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank (Sunday)           |
+
+### r=16 training run (Saturday PM-3)
+
+| Metric | Value |
+|--------|-------|
+| Run name | `r16` |
+| Final training loss (avg) | 1.3439 |
+| Step-level loss at end | ~0.92–1.08 |
+| Steps | 375 (3 epochs × 1000 / 8 effective batch) |
+| Wall-clock | 52:37 on free T4 |
+| Trainable params | 41,943,040 (1.10% of 3.8B) |
+| Adapter size | 161 MB (`adapter_model.safetensors`) |
+| W&B run | https://wandb.ai/gabrielkevorkian2005-gaby/huggingface/runs/55xy4cuz |
+| Adapter location | Google Drive: `/MyDrive/LLM_Finetune/models/adapters/r16/` |
+| Frozen config | `results/runs/r16/config.yaml` + `train_summary.json` |
 
 ### Baseline observations (from `results/baseline/per_example.csv`)
 
@@ -216,10 +235,13 @@ halves generation time.
 
 ## 8. Weekend Deliverables
 
-- [ ] GitHub repo with clean code + this README filled in
-- [ ] `data/eval/eval.jsonl` (50 examples, locked)
-- [ ] Baseline results JSON + CSV
-- [ ] Three fine-tuned LoRA adapters (r=8, r=16, r=32)
+- [x] GitHub repo with clean code + this README filled in (in progress)
+- [x] `data/eval/eval.jsonl` (50 examples, locked)
+- [x] `data/train/train_1k.jsonl` (1,000 examples, disjoint from eval)
+- [x] Baseline results JSON + CSV
+- [x] First fine-tuned LoRA adapter (r=16) — eval still pending
+- [ ] Two more fine-tuned LoRA adapters (r=8, r=32)
+- [ ] All three adapters scored against `eval.jsonl`
 - [ ] `results/ablation_table.csv` + `rank_vs_rouge.png`
 - [ ] `results/failure_analysis.md` (5 categorized failures)
 - [ ] Public W&B dashboard
@@ -291,4 +313,21 @@ demo video, HF Hub publishing.
 
 ---
 
-*Next action: confirm the domain choice, then begin Saturday AM-1 — set up the environment and start building `data/eval/eval.jsonl`.*
+*Next action (Sunday AM-1): build `scripts/05_eval_finetuned.py` + a Colab notebook that loads the r=16 adapter from Drive, runs it over `data/eval/eval.jsonl`, and writes `results/runs/r16/eval_results.json`. Then move to the r=8 and r=32 ablation trains.*
+
+---
+
+## 14. Current Session Handoff (for next chat session)
+
+**Where we are right now (end of Saturday, 2026-06-22):**
+
+Tasks #1–#5 done. Saturday goal hit. Adapter for r=16 trained and persisted on Drive.
+
+**Critical state a new chat session needs to know:**
+- r=16 adapter lives on Google Drive at `/MyDrive/LLM_Finetune/models/adapters/r16/` — the Sunday eval will mount Drive and load from there. The adapter is gitignored (161 MB) and is NOT in the repo.
+- Mistral chat template install (`src/data/format_prompts.py::ensure_chat_template`) MUST be called on the tokenizer before any apply_chat_template — base Mistral ships without one. Same helper for train and eval.
+- Loading the adapter for inference is TWO STEPS: load Unsloth's 4-bit base model, then `PeftModel.from_pretrained(model, adapter_path)`. Never call `FastLanguageModel.from_pretrained(adapter_path)` directly — fails with "No config file found".
+- Unsloth gotcha: in any training/inference code that uses Unsloth, `import unsloth` must come BEFORE `from trl ...` / `from transformers ...` / `from peft ...`, or its monkey-patches don't apply and you get version-mismatch crashes (see `src/training/train_lora.py` for the pattern).
+- The Colab notebook pattern: mount Drive + symlink `models/adapters/` and `results/runs/` to Drive paths BEFORE running training/eval, so writes survive runtime restarts.
+- User has 6 GB local VRAM — cannot run inference locally. All training and eval runs on Colab T4.
+- User does git pushes themselves.
