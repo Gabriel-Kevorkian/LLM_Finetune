@@ -101,3 +101,19 @@ tqdm>=4.65.0
 # requests: HTTP client. Useful for fetching docs or pages when building the
 #           eval/training datasets.
 requests>=2.31.0
+
+
+# --- Training-set construction (added for Task #4) ----------------------------
+# sentence-transformers: tiny embedding model (all-MiniLM-L6-v2, ~80MB, CPU-only).
+#                        Used to compute semantic similarity between candidate
+#                        training questions and the 50 locked eval questions, so
+#                        we can drop paraphrases of eval items that simple
+#                        substring matching would miss. Why this matters: if a
+#                        SO question is a reworded version of an eval question,
+#                        training on it == open-book eval == invalid results.
+sentence-transformers>=2.7.0
+
+# beautifulsoup4: HTML parser. Stack Overflow answer bodies come back wrapped
+#                 in <p>, <code>, <pre> tags via the API; bs4 strips those down
+#                 to clean text while preserving code blocks readably.
+beautifulsoup4>=4.12.0

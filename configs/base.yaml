@@ -1,0 +1,109 @@
+# =============================================================================
+# Default LoRA training config — Task #5 ("first fine-tune") in README §3.
+# =============================================================================
+#
+# WHY A YAML PER RUN (and not just src/config.py defaults):
+#   Every training run gets its YAML copied into results/runs/<name>/config.yaml
+#   when the script finishes. That makes results REPRODUCIBLE: months later
+#   you can look at results/runs/r16/ and see EXACTLY what knobs were used to
+#   produce those numbers. If you only used src/config.py defaults, those
+#   defaults could shift later and you'd lose the audit trail.
+#
+# WHY "base.yaml" SPECIFICALLY:
+#   This is the DEFAULT config. The Sunday ablation runs (r=8 and r=32) will
+#   inherit from it and override only the rank — that's the "one variable per
+#   ablation" rule in action.
+# =============================================================================
+
+# A short name used for the output folder names:
+#   models/adapters/r16/          ← where the trained LoRA weights land
+#   results/runs/r16/             ← where the eval results + this config land
+run_name: r16
+
+
+# ----- LoRA hyperparameters --------------------------------------------------
+# Rank — controls capacity of the LoRA adapter. Each attention/MLP weight matrix
+# gets two skinny matrices A (r × d) and B (d × r) added alongside it. Higher
+# r = more capacity to learn but more params to update + risk of overfit on 1K.
+# 16 is a balanced default. The ablation will compare r=8 vs r=16 vs r=32.
+lora_rank:    16
+
+# Alpha is a scaling factor on the LoRA update during forward pass:
+#   effective_output = W·x  +  (alpha / rank) · (B·A) · x
+# Convention is alpha == rank for a unit scale. Don't overthink this knob.
+lora_alpha:   16
+
+# Dropout on the LoRA path during training (regularization). Unsloth performs
+# best with 0; on 1K examples × 3 epochs we don't need extra regularization.
+lora_dropout: 0.0
+
+# Which weight matrices inside each transformer block get LoRA attached.
+# For Mistral:
+#   q_proj/k_proj/v_proj/o_proj = attention projections (Query, Key, Value, Out)
+#   gate_proj/up_proj/down_proj = MLP / feed-forward layers
+# Targeting ALL of them is more expensive but consistently gives the best
+# results for domain adaptation. Targeting attention only is faster but
+# typically loses ~1-2 ROUGE points.
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+
+# ----- Optimizer + schedule --------------------------------------------------
+# Learning rate. 2e-4 is the long-established LoRA default (paper + Unsloth
+# guide both use it). Too high → loss spikes to NaN; too low → barely learns.
+learning_rate: 2.0e-4
+
+# Number of full passes through the 1K-example training set.
+#   1 epoch  ≈ under-trained
+#   3 epochs ≈ the sweet spot for LoRA on small datasets
+#   5+      ≈ starts memorizing (overfitting)
+num_epochs:    3
+
+# Per-device (i.e. per-GPU) batch size. T4 + 7B + 4-bit + LoRA can fit ~2 at
+# seq_len=2048 without OOM-ing. Higher = faster but risks running out of VRAM.
+per_device_batch_size: 2
+
+# Gradient accumulation — accumulate gradients across this many forward/back
+# passes before applying an optimizer step.
+#   Effective batch size = per_device_batch_size × grad_accum_steps = 2 × 4 = 8
+# Larger effective batch → smoother gradient → more stable updates.
+grad_accum_steps:      4
+
+# Number of warmup steps. The optimizer's learning rate ramps linearly from
+# 0 up to learning_rate over this many steps, then decays. Stabilizes the
+# first few weight updates which would otherwise be very noisy.
+warmup_steps:  10
+
+# Random seed used for: dataset shuffling, LoRA A/B init, dropout masks. CRUCIAL
+# for ablation: r=8 vs r=16 must use the SAME seed or differences could be
+# luck, not rank.
+seed: 42
+
+
+# ----- Sequence length -------------------------------------------------------
+# Max tokens per training example. Most Docker Q&A fits in <512 tokens but
+# some long answers and code blocks push past that. 2048 is the standard
+# QLoRA setup on T4 — leaves room for the formatted prompt + answer + a
+# couple of long examples without truncation.
+max_seq_length: 2048
+
+
+# ----- Logging + I/O ---------------------------------------------------------
+# Log loss to console + W&B every N optimizer steps.
+logging_steps: 5
+
+# Save a checkpoint every N steps. Set to 0 to disable mid-run checkpoints
+# (we only save the FINAL adapter at end of training; weekend run is short
+# enough that crash recovery isn't worth the disk + time cost of intermediate
+# saves). If you want to be paranoid, set this to e.g. 50.
+save_steps:    0
+
+# Whether to log to Weights & Biases. False by default to keep things simple;
+# the Colab notebook flips this on by passing --wandb.
+wandb_enabled: false

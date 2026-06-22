@@ -172,14 +172,31 @@ Two evaluation dimensions for the weekend version, both in `src/eval/runner.py`:
 
 ## 6. Results Table
 
-Filled in Sunday afternoon. Empty until then.
+| Model                       | ROUGE-1 | ROUGE-L | LLM-Judge (1–5) | Notes                          |
+|-----------------------------|---------|---------|------------------|--------------------------------|
+| Mistral-7B-v0.3 base        | 0.132   | 0.107   | 2.28             | Zero-shot baseline (50 q, T4)  |
+| + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank                     |
+| + LoRA r=16, 1K data        | TBD     | TBD     | TBD              | Default                        |
+| + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank                    |
 
-| Model                       | ROUGE-1 | ROUGE-L | LLM-Judge (1–5) | Notes                |
-|-----------------------------|---------|---------|------------------|----------------------|
-| Mistral-7B base             | TBD     | TBD     | TBD              | Zero-shot baseline   |
-| + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank           |
-| + LoRA r=16, 1K data        | TBD     | TBD     | TBD              | Default              |
-| + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank          |
+### Baseline observations (from `results/baseline/per_example.csv`)
+
+Mistral-7B base shows the classic patterns expected of a non-instruction-tuned
+model on a narrow technical domain:
+- **Repetition loops** on open-ended questions (e.g. docker-009: "It is a great tool for..." repeated).
+- **Wrong-domain hallucinations** (docker-015: returned a Cisco BGP command for a Docker inspect question).
+- **Stack-Overflow-style code dumps** instead of explanations (docker-029, docker-031).
+- **Occasional NaN generations** (docker-003: literal `"nan"` output — known T4 + 4-bit quantization edge case).
+
+These are exactly the failure modes fine-tuning should compress.
+
+### Operational note
+
+Baseline run took **40 minutes on free Colab T4** (~48 s/example end-to-end =
+~30 s generation + ~4 s judge wait + overhead). For Sunday's 3 ablation eval
+runs (~2 hrs total), consider reducing `EVAL_MAX_NEW_TOKENS` from 512 → 256
+in `src/config.py` — most Docker answers fit easily under 256 and it roughly
+halves generation time.
 
 ---
 
