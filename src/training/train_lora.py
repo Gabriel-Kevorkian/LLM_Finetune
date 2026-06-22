@@ -147,9 +147,18 @@ def run_training(
     Returns:
         A dict with the final loss, step count, and output paths.
     """
-    # Lazy imports — torch/datasets/trl can't be installed on the user's
-    # local Windows box (CUDA), only on Colab. This function is meant to run
-    # ON COLAB; importing the module locally must not crash.
+    # Lazy imports — torch/datasets/trl/unsloth can't be installed on the
+    # user's local Windows box (CUDA), only on Colab. This function is meant
+    # to run ON COLAB; importing the module locally must not crash.
+    #
+    # IMPORT ORDER MATTERS: `unsloth` MUST be imported BEFORE `trl`,
+    # `transformers`, and `peft`. Unsloth monkey-patches classes in those
+    # libraries at import time; if they're already loaded, Unsloth's patches
+    # land on stale references and you get version-mismatch errors like
+    # "SFTConfig got unexpected kwarg push_to_hub_token". Unsloth even warns
+    # about this with a noisy stderr message. We obey the warning here.
+    import unsloth  # noqa: F401  (side-effect import — patches trl/transformers/peft)
+
     import torch
     from datasets import Dataset
     # SFTConfig (introduced in TRL 0.13) replaces TrainingArguments for SFT
