@@ -152,8 +152,12 @@ def run_training(
     # ON COLAB; importing the module locally must not crash.
     import torch
     from datasets import Dataset
-    from trl import SFTTrainer
-    from transformers import TrainingArguments
+    # SFTConfig (introduced in TRL 0.13) replaces TrainingArguments for SFT
+    # runs. It carries the same training knobs PLUS the SFT-specific ones
+    # (dataset_text_field, max_seq_length, packing) that used to live on
+    # SFTTrainer.__init__ before TRL 0.13. We use SFTConfig because Colab
+    # pulls the latest TRL by default.
+    from trl import SFTTrainer, SFTConfig
     from src.training.load_model import load_model_for_training
 
     # --- 1. Load model + tokenizer (loads quant base + attaches LoRA) -------
@@ -181,10 +185,14 @@ def run_training(
     print("--- end example ---\n")
 
     # --- 3. Set up training arguments --------------------------------------
-    # `bf16` (bfloat16): T4 supports it via torch's autocast wrapping. bf16
-    # has the same exponent range as fp32 (so it doesn't overflow on large
-    # logits the way fp16 does) but half the bits. It's the standard choice
-    # for LoRA training on modern GPUs.
+    # Mixed precision (bf16 vs fp16):
+    #   - bf16 has fp32's exponent range, so it doesn't overflow on large
+    #     logits — the preferred choice on hardware that supports it.
+    #   - T4 is Turing-class and has no bf16 hardware support, so
+    #     torch.cuda.is_bf16_supported() returns False there. We fall back
+    #     to fp16, which is fine for LoRA training — the LoRA paper and
+    #     Unsloth's T4 notebooks all use fp16. Don't be alarmed by the log.
+    #   - A100/H100/RTX 30+ users will pick up bf16 automatically.
     #
     # `optim="adamw_8bit"`: AdamW maintains TWO extra tensors per param (the
     # running mean + variance of gradients). At full precision that doubles
@@ -193,11 +201,15 @@ def run_training(
     #
     # `report_to`: "wandb" only if the user opted in. Otherwise "none" to
     # avoid the trainer trying to log to a service we didn't configure.
+    #
+    # `dataset_text_field`, `max_seq_length`, `packing`, `dataset_num_proc`:
+    #   in TRL 0.13+ these moved from SFTTrainer.__init__ into SFTConfig.
+    #   Putting them here is the modern pattern.
     bf16_ok = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
-    if not bf16_ok:
-        print("[WARN] bf16 not supported — falling back to fp16 (may be less stable)")
+    precision_note = "bf16" if bf16_ok else "fp16 (T4-class GPU — expected)"
+    print(f"Mixed precision: {precision_note}")
 
-    training_args = TrainingArguments(
+    sft_config = SFTConfig(
         output_dir                  = str(adapters_dir / config.run_name / "_checkpoints"),
         per_device_train_batch_size = config.per_device_batch_size,
         gradient_accumulation_steps = config.grad_accum_steps,
@@ -215,26 +227,21 @@ def run_training(
         lr_scheduler_type           = "linear",
         report_to                   = ["wandb"] if config.wandb_enabled else ["none"],
         run_name                    = config.run_name,
+        # SFT-specific knobs (moved here from SFTTrainer.__init__ in TRL 0.13+):
+        dataset_text_field          = "text",
+        max_seq_length              = config.max_seq_length,
+        packing                     = False,
+        dataset_num_proc            = 2,
     )
 
     # --- 4. Build the SFTTrainer -------------------------------------------
-    # `dataset_text_field="text"`: tells SFTTrainer which column of our
-    #     Dataset holds the formatted string to tokenize.
-    # `packing=False`: don't concatenate multiple examples into one sequence.
-    #     Packing speeds training up at the cost of cross-example contamination
-    #     on the loss. With only 1K rows and a weekend deadline, the simpler
-    #     unpacked setup is the right tradeoff.
-    # `max_seq_length`: examples longer than this get truncated. 2048 fits
-    #     well within T4's VRAM and covers >99% of Docker Q&A.
+    # TRL 0.13+ renamed the `tokenizer` kwarg to `processing_class`. The
+    # old name raises TypeError on current TRL.
     trainer = SFTTrainer(
-        model              = model,
-        tokenizer          = tokenizer,
-        train_dataset      = dataset,
-        dataset_text_field = "text",
-        max_seq_length     = config.max_seq_length,
-        dataset_num_proc   = 2,
-        packing            = False,
-        args               = training_args,
+        model            = model,
+        processing_class = tokenizer,
+        train_dataset    = dataset,
+        args             = sft_config,
     )
 
     # --- 5. Train ----------------------------------------------------------
