@@ -209,30 +209,49 @@ def run_training(
     precision_note = "bf16" if bf16_ok else "fp16 (T4-class GPU — expected)"
     print(f"Mixed precision: {precision_note}")
 
-    sft_config = SFTConfig(
-        output_dir                  = str(adapters_dir / config.run_name / "_checkpoints"),
-        per_device_train_batch_size = config.per_device_batch_size,
-        gradient_accumulation_steps = config.grad_accum_steps,
-        num_train_epochs            = config.num_epochs,
-        learning_rate               = config.learning_rate,
-        warmup_steps                = config.warmup_steps,
-        logging_steps               = config.logging_steps,
-        save_strategy               = "no" if config.save_steps == 0 else "steps",
-        save_steps                  = config.save_steps if config.save_steps > 0 else 500,
-        seed                        = config.seed,
-        bf16                        = bf16_ok,
-        fp16                        = not bf16_ok,
-        optim                       = "adamw_8bit",
-        weight_decay                = 0.01,
-        lr_scheduler_type           = "linear",
-        report_to                   = ["wandb"] if config.wandb_enabled else ["none"],
-        run_name                    = config.run_name,
-        # SFT-specific knobs (moved here from SFTTrainer.__init__ in TRL 0.13+):
-        dataset_text_field          = "text",
-        max_seq_length              = config.max_seq_length,
-        packing                     = False,
-        dataset_num_proc            = 2,
-    )
+    # Build the kwargs dict, then filter to what THIS version of SFTConfig
+    # actually accepts. TRL renames and removes kwargs across releases
+    # (0.13: tokenizer→processing_class + several args moved into SFTConfig;
+    #  0.16: max_seq_length→max_length). Rather than pin a TRL version,
+    # we introspect the SFTConfig signature and pass only what it knows.
+    # Unrecognized args fall back to SFTConfig's defaults — fine for SFT
+    # tuning knobs like dataset_num_proc.
+    candidate_kwargs = {
+        # --- standard TrainingArguments fields (stable across releases) ---
+        "output_dir":                  str(adapters_dir / config.run_name / "_checkpoints"),
+        "per_device_train_batch_size": config.per_device_batch_size,
+        "gradient_accumulation_steps": config.grad_accum_steps,
+        "num_train_epochs":            config.num_epochs,
+        "learning_rate":               config.learning_rate,
+        "warmup_steps":                config.warmup_steps,
+        "logging_steps":               config.logging_steps,
+        "save_strategy":               "no" if config.save_steps == 0 else "steps",
+        "save_steps":                  config.save_steps if config.save_steps > 0 else 500,
+        "seed":                        config.seed,
+        "bf16":                        bf16_ok,
+        "fp16":                        not bf16_ok,
+        "optim":                       "adamw_8bit",
+        "weight_decay":                0.01,
+        "lr_scheduler_type":           "linear",
+        "report_to":                   ["wandb"] if config.wandb_enabled else ["none"],
+        "run_name":                    config.run_name,
+        # --- SFT-specific knobs (added in 0.13, renamed/moved later) ----
+        "dataset_text_field":          "text",
+        # max_seq_length was renamed to max_length in TRL 0.16+. We pass
+        # BOTH and let the filter drop whichever this version doesn't know.
+        "max_seq_length":              config.max_seq_length,
+        "max_length":                  config.max_seq_length,
+        "packing":                     False,
+        "dataset_num_proc":            2,
+    }
+    import inspect
+    accepted = set(inspect.signature(SFTConfig).parameters.keys())
+    sft_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted}
+    dropped = sorted(set(candidate_kwargs) - set(sft_kwargs))
+    if dropped:
+        print(f"[info] SFTConfig in this TRL version doesn't accept: {dropped} "
+              f"— falling back to defaults for those.")
+    sft_config = SFTConfig(**sft_kwargs)
 
     # --- 4. Build the SFTTrainer -------------------------------------------
     # TRL 0.13+ renamed the `tokenizer` kwarg to `processing_class`. The
