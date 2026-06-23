@@ -133,7 +133,7 @@ LLM_Finetune/
 │   │   └── per_example.csv
 │   ├── runs/
 │   │   ├── r8/
-│   │   │   ├── eval_results.json
+│   │   │   ├── results.json
 │   │   │   ├── per_example.csv
 │   │   │   └── config.yaml
 │   │   ├── r16/
@@ -313,7 +313,7 @@ demo video, HF Hub publishing.
 
 ---
 
-*Next action (Sunday AM-1): build `scripts/05_eval_finetuned.py` + a Colab notebook that loads the r=16 adapter from Drive, runs it over `data/eval/eval.jsonl`, and writes `results/runs/r16/eval_results.json`. Then move to the r=8 and r=32 ablation trains.*
+*Next action (Sunday AM-1): build `scripts/05_eval_finetuned.py` + a Colab notebook that loads the r=16 adapter from Drive, runs it over `data/eval/eval.jsonl`, and writes `results/runs/r16/results.json` (+ `per_example.csv`). Then move to the r=8 and r=32 ablation trains.*
 
 ---
 
