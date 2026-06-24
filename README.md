@@ -24,8 +24,8 @@ Scope cuts are listed in section [12. What was cut and why](#12-what-was-cut-and
 | Evaluation suite | ✅ Built — `data/eval/eval.jsonl` (50 verified Docker Q&A, LOCKED) |
 | Training set | ✅ Built — `data/train/train_1k.jsonl` (1,000 SO [docker] Q&A, score 52→2509) |
 | Baseline run | ✅ Done — rouge1=0.132, rougeL=0.107, judge=2.28 (see §6) |
-| Fine-tune r=16 | ✅ Done — final loss 1.34 in 52:37 min on T4. Adapter on Drive. Eval pending. |
-| Fine-tune r=8, r=32 (ablation) | ⏳ Sunday |
+| Fine-tune r=16 | ✅ Done + evaluated — rouge1=0.274, rougeL=0.188, judge=3.06 (see §6) |
+| Fine-tune r=8, r=32 (ablation) | ⏳ In progress (Sunday) |
 | Failure analysis | ⏳ Sunday |
 
 ---
@@ -58,8 +58,8 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 
 | Block | Status | Task |
 |-------|--------|------|
-| Sun AM-1 | ⏳ NEXT | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. |
-| Sun AM-2 | ⏳ | **Single ablation axis: LoRA rank.** Train r=8 and r=32 (keeping data, lr, epochs constant). Eval both. |
+| Sun AM-1 | ✅ | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. rouge1=0.274, rougeL=0.188, judge=3.06. |
+| Sun AM-2 | ⏳ NEXT | **Single ablation axis: LoRA rank.** Train r=8 and r=32 (keeping data, lr, epochs constant). Eval both. |
 | Sun PM-1 | ⏳ | Compile `results/ablation_table.csv` and a single matplotlib chart (rank vs ROUGE-L). |
 | Sun PM-2 | ⏳ | **Failure analysis:** pick 5 fine-tuned-model failures, categorize (hallucination / refusal / formatting / OOD), write `results/failure_analysis.md`. |
 | Sun PM-3 | ⏳ | Update the results table in this README. Make the W&B dashboard public. Push to GitHub. |
@@ -180,8 +180,15 @@ Two evaluation dimensions for the weekend version, both in `src/eval/runner.py`:
 |-----------------------------|---------|---------|------------------|--------------------------------|
 | Mistral-7B-v0.3 base        | 0.132   | 0.107   | 2.28             | Zero-shot baseline (50 q, T4)  |
 | + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank (Sunday)            |
-| + LoRA r=16, 1K data        | TBD     | TBD     | TBD              | Default — trained, eval pending |
+| + LoRA r=16, 1K data        | **0.274** | **0.188** | **3.06**       | Default — **+107% R-1, +0.78 judge** vs base |
 | + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank (Sunday)           |
+
+**r=16 vs baseline:** ROUGE-1 0.132 → 0.274 (+107%), ROUGE-L 0.107 → 0.188 (+76%),
+judge 2.28 → 3.06 (+0.78 / 5). Fine-tuning measurably closed the domain gap. By
+difficulty the lift is strongest on *easy* questions (judge 3.72) and thinnest on
+*hard* (judge 2.50); by category, *commands* leads (judge 3.73) and *volumes* lags
+(judge 2.25) — useful signal for Sunday's failure analysis. Full breakdown in
+`results/runs/r16/results.json`.
 
 ### r=16 training run (Saturday PM-3)
 

@@ -1,0 +1,94 @@
+{
+  "run_name": "r16",
+  "model_id": "unsloth/mistral-7b-v0.3-bnb-4bit+adapter:models/adapters/r16",
+  "num_examples": 50,
+  "use_llm_judge": true,
+  "aggregate": {
+    "n": 50,
+    "rouge1": 0.273696,
+    "rougeL": 0.187992,
+    "exact_match": 0.0,
+    "judge_score": 3.06
+  },
+  "by_category": {
+    "commands": {
+      "n": 11,
+      "rouge1": 0.2972909090909091,
+      "rougeL": 0.21826363636363635,
+      "exact_match": 0.0,
+      "judge_score": 3.727272727272727
+    },
+    "compose": {
+      "n": 5,
+      "rouge1": 0.25056,
+      "rougeL": 0.1718,
+      "exact_match": 0.0,
+      "judge_score": 3.4
+    },
+    "dockerfile": {
+      "n": 13,
+      "rouge1": 0.2505307692307692,
+      "rougeL": 0.16624615384615385,
+      "exact_match": 0.0,
+      "judge_score": 3
+    },
+    "images": {
+      "n": 4,
+      "rouge1": 0.345325,
+      "rougeL": 0.218175,
+      "exact_match": 0.0,
+      "judge_score": 3
+    },
+    "networking": {
+      "n": 4,
+      "rouge1": 0.25215,
+      "rougeL": 0.16705,
+      "exact_match": 0.0,
+      "judge_score": 2.75
+    },
+    "security": {
+      "n": 5,
+      "rouge1": 0.27268,
+      "rougeL": 0.17092,
+      "exact_match": 0.0,
+      "judge_score": 2.8
+    },
+    "troubleshooting": {
+      "n": 4,
+      "rouge1": 0.31055,
+      "rougeL": 0.206225,
+      "exact_match": 0.0,
+      "judge_score": 2.5
+    },
+    "volumes": {
+      "n": 4,
+      "rouge1": 0.22735,
+      "rougeL": 0.189525,
+      "exact_match": 0.0,
+      "judge_score": 2.25
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "n": 18,
+      "rouge1": 0.3105888888888889,
+      "rougeL": 0.21962777777777778,
+      "exact_match": 0.0,
+      "judge_score": 3.7222222222222223
+    },
+    "medium": {
+      "n": 26,
+      "rouge1": 0.2451076923076923,
+      "rougeL": 0.1652076923076923,
+      "exact_match": 0.0,
+      "judge_score": 2.730769230769231
+    },
+    "hard": {
+      "n": 6,
+      "rouge1": 0.2869,
+      "rougeL": 0.19181666666666666,
+      "exact_match": 0.0,
+      "judge_score": 2.5
+    }
+  }
+}
