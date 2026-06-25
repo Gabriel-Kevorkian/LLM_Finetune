@@ -26,7 +26,7 @@ Scope cuts are listed in section [12. What was cut and why](#12-what-was-cut-and
 | Baseline run | ✅ Done — rouge1=0.132, rougeL=0.107, judge=2.28 (see §6) |
 | Fine-tune r=16 | ✅ Done + evaluated — rouge1=0.274, rougeL=0.188, judge=3.06 (see §6) |
 | Fine-tune r=8, r=32 (ablation) | ✅ Done + evaluated — r=8 judge 3.02, r=32 judge 3.24 (best). See §6 |
-| Failure analysis | ⏳ Sunday |
+| Failure analysis | ✅ Done — `results/failure_analysis.md` (5 modes; top fix = add repetition_penalty at inference) |
 
 ---
 
@@ -61,7 +61,7 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 | Sun AM-1 | ✅ | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. rouge1=0.274, rougeL=0.188, judge=3.06. |
 | Sun AM-2 | ✅ | **Single ablation axis: LoRA rank.** Trained r=8 and r=32 (data, lr, epochs constant). Both evaluated. |
 | Sun PM-1 | ✅ | Compiled `results/ablation_table.csv` + `results/charts/rank_vs_rouge.png` (rank vs ROUGE + judge). |
-| Sun PM-2 | ⏳ | **Failure analysis:** pick 5 fine-tuned-model failures, categorize (hallucination / refusal / formatting / OOD), write `results/failure_analysis.md`. |
+| Sun PM-2 | ✅ | **Failure analysis:** 5 categorized failure modes (repetition loops, semantic drift, confidently-wrong security, fabricated mechanism, muddled reasoning) in `results/failure_analysis.md`. |
 | Sun PM-3 | ⏳ | Update the results table in this README. Make the W&B dashboard public. Push to GitHub. |
 
 **End of Sunday goal:** results table filled, ablation chart in repo, README finalized.
@@ -200,6 +200,17 @@ most of the lift at half the trainable params of r=16, but r=32 is worth the ext
 capacity if quality is the priority.** Chart: `results/charts/rank_vs_rouge.png`;
 table: `results/ablation_table.csv`.
 
+**Where it still fails** (full writeup: `results/failure_analysis.md`): the 17
+weakest (judge=2) answers split into two buckets. **~half are a decoding problem** —
+greedy generation with no repetition penalty sends the model into runaway loops
+(14/50 outputs repeat; avg prediction 932 chars vs 373-char references), so even
+*easy* questions like `FROM` get the first sentence right then degrade. The cheapest
+high-value fix in the whole project is a one-line inference change
+(`repetition_penalty≈1.2`) + a re-eval, no retrain. **The other half are genuine
+knowledge gaps** — build secrets (recommends the `--build-arg` anti-pattern),
+Compose `depends_on` readiness, and ENTRYPOINT⊕CMD exec-form semantics fail at
+*every* rank, so only targeted training data (not more LoRA capacity) will move them.
+
 ### r=16 training run (Saturday PM-3)
 
 | Metric | Value |
@@ -256,11 +267,11 @@ halves generation time.
 - [x] `data/eval/eval.jsonl` (50 examples, locked)
 - [x] `data/train/train_1k.jsonl` (1,000 examples, disjoint from eval)
 - [x] Baseline results JSON + CSV
-- [x] First fine-tuned LoRA adapter (r=16) — eval still pending
-- [ ] Two more fine-tuned LoRA adapters (r=8, r=32)
-- [ ] All three adapters scored against `eval.jsonl`
+- [x] First fine-tuned LoRA adapter (r=16) — evaluated
+- [x] Two more fine-tuned LoRA adapters (r=8, r=32)
+- [x] All three adapters scored against `eval.jsonl`
 - [x] `results/ablation_table.csv` + `rank_vs_rouge.png`
-- [ ] `results/failure_analysis.md` (5 categorized failures)
+- [x] `results/failure_analysis.md` (5 categorized failures)
 - [ ] Public W&B dashboard
 - [ ] (Stretch) Eval dataset + best adapter pushed to HuggingFace Hub
 
