@@ -1,0 +1,94 @@
+{
+  "run_name": "r32",
+  "model_id": "unsloth/mistral-7b-v0.3-bnb-4bit+adapter:models/adapters/r32",
+  "num_examples": 50,
+  "use_llm_judge": true,
+  "aggregate": {
+    "n": 50,
+    "rouge1": 0.305258,
+    "rougeL": 0.195788,
+    "exact_match": 0.0,
+    "judge_score": 3.24
+  },
+  "by_category": {
+    "commands": {
+      "n": 11,
+      "rouge1": 0.3346090909090909,
+      "rougeL": 0.23877272727272728,
+      "exact_match": 0.0,
+      "judge_score": 3.6363636363636362
+    },
+    "compose": {
+      "n": 5,
+      "rouge1": 0.33555999999999997,
+      "rougeL": 0.18472,
+      "exact_match": 0.0,
+      "judge_score": 2.6
+    },
+    "dockerfile": {
+      "n": 13,
+      "rouge1": 0.2466846153846154,
+      "rougeL": 0.15205384615384615,
+      "exact_match": 0.0,
+      "judge_score": 2.769230769230769
+    },
+    "images": {
+      "n": 4,
+      "rouge1": 0.344425,
+      "rougeL": 0.2059,
+      "exact_match": 0.0,
+      "judge_score": 4
+    },
+    "networking": {
+      "n": 4,
+      "rouge1": 0.3055,
+      "rougeL": 0.21687499999999998,
+      "exact_match": 0.0,
+      "judge_score": 3.75
+    },
+    "security": {
+      "n": 5,
+      "rouge1": 0.2281,
+      "rougeL": 0.14046,
+      "exact_match": 0.0,
+      "judge_score": 3
+    },
+    "troubleshooting": {
+      "n": 4,
+      "rouge1": 0.3513,
+      "rougeL": 0.21912500000000001,
+      "exact_match": 0.0,
+      "judge_score": 3.25
+    },
+    "volumes": {
+      "n": 4,
+      "rouge1": 0.388025,
+      "rougeL": 0.248175,
+      "exact_match": 0.0,
+      "judge_score": 3.5
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "n": 18,
+      "rouge1": 0.3104777777777778,
+      "rougeL": 0.21570555555555557,
+      "exact_match": 0.0,
+      "judge_score": 3.7222222222222223
+    },
+    "medium": {
+      "n": 26,
+      "rouge1": 0.30233461538461537,
+      "rougeL": 0.18694230769230769,
+      "exact_match": 0.0,
+      "judge_score": 3.076923076923077
+    },
+    "hard": {
+      "n": 6,
+      "rouge1": 0.3022666666666667,
+      "rougeL": 0.17436666666666667,
+      "exact_match": 0.0,
+      "judge_score": 2.5
+    }
+  }
+}

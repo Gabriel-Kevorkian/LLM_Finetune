@@ -25,7 +25,7 @@ Scope cuts are listed in section [12. What was cut and why](#12-what-was-cut-and
 | Training set | ✅ Built — `data/train/train_1k.jsonl` (1,000 SO [docker] Q&A, score 52→2509) |
 | Baseline run | ✅ Done — rouge1=0.132, rougeL=0.107, judge=2.28 (see §6) |
 | Fine-tune r=16 | ✅ Done + evaluated — rouge1=0.274, rougeL=0.188, judge=3.06 (see §6) |
-| Fine-tune r=8, r=32 (ablation) | ⏳ In progress (Sunday) |
+| Fine-tune r=8, r=32 (ablation) | ✅ Done + evaluated — r=8 judge 3.02, r=32 judge 3.24 (best). See §6 |
 | Failure analysis | ⏳ Sunday |
 
 ---
@@ -59,8 +59,8 @@ Time estimates assume one person, Colab T4 free tier, and zero idle time.
 | Block | Status | Task |
 |-------|--------|------|
 | Sun AM-1 | ✅ | Eval the Sat fine-tuned adapter (r=16) on the locked eval set. rouge1=0.274, rougeL=0.188, judge=3.06. |
-| Sun AM-2 | ⏳ NEXT | **Single ablation axis: LoRA rank.** Train r=8 and r=32 (keeping data, lr, epochs constant). Eval both. |
-| Sun PM-1 | ⏳ | Compile `results/ablation_table.csv` and a single matplotlib chart (rank vs ROUGE-L). |
+| Sun AM-2 | ✅ | **Single ablation axis: LoRA rank.** Trained r=8 and r=32 (data, lr, epochs constant). Both evaluated. |
+| Sun PM-1 | ✅ | Compiled `results/ablation_table.csv` + `results/charts/rank_vs_rouge.png` (rank vs ROUGE + judge). |
 | Sun PM-2 | ⏳ | **Failure analysis:** pick 5 fine-tuned-model failures, categorize (hallucination / refusal / formatting / OOD), write `results/failure_analysis.md`. |
 | Sun PM-3 | ⏳ | Update the results table in this README. Make the W&B dashboard public. Push to GitHub. |
 
@@ -179,9 +179,9 @@ Two evaluation dimensions for the weekend version, both in `src/eval/runner.py`:
 | Model                       | ROUGE-1 | ROUGE-L | LLM-Judge (1–5) | Notes                          |
 |-----------------------------|---------|---------|------------------|--------------------------------|
 | Mistral-7B-v0.3 base        | 0.132   | 0.107   | 2.28             | Zero-shot baseline (50 q, T4)  |
-| + LoRA r=8, 1K data         | TBD     | TBD     | TBD              | Lower rank (Sunday)            |
-| + LoRA r=16, 1K data        | **0.274** | **0.188** | **3.06**       | Default — **+107% R-1, +0.78 judge** vs base |
-| + LoRA r=32, 1K data        | TBD     | TBD     | TBD              | Higher rank (Sunday)           |
+| + LoRA r=8, 1K data         | 0.276   | 0.192   | 3.02             | Lower rank — matches r=16 at ½ the adapter params |
+| + LoRA r=16, 1K data        | 0.274   | 0.188   | 3.06             | Default — **+107% R-1, +0.78 judge** vs base |
+| + LoRA r=32, 1K data        | **0.305** | **0.196** | **3.24**       | Higher rank — **best on every metric** |
 
 **r=16 vs baseline:** ROUGE-1 0.132 → 0.274 (+107%), ROUGE-L 0.107 → 0.188 (+76%),
 judge 2.28 → 3.06 (+0.78 / 5). Fine-tuning measurably closed the domain gap. By
@@ -189,6 +189,16 @@ difficulty the lift is strongest on *easy* questions (judge 3.72) and thinnest o
 *hard* (judge 2.50); by category, *commands* leads (judge 3.73) and *volumes* lags
 (judge 2.25) — useful signal for Sunday's failure analysis. Full breakdown in
 `results/runs/r16/results.json`.
+
+**Rank ablation (r=8 / 16 / 32, all else fixed — same 1K data, lr, 3 epochs,
+alpha==rank, seed 42):** every adapter beats the baseline by a wide margin, and
+quality rises with rank — **r=32 wins on all three metrics** (R-1 0.305, R-L 0.196,
+judge 3.24). The jump from r=8→r=16 is essentially flat (judge 3.02 → 3.06), while
+r=16→r=32 is the real gain (+0.18 judge, +0.032 R-1), tracking the falling training
+loss (1.43 → 1.34 → 1.24). Takeaway: for this Docker Q&A task, **r=8 already captures
+most of the lift at half the trainable params of r=16, but r=32 is worth the extra
+capacity if quality is the priority.** Chart: `results/charts/rank_vs_rouge.png`;
+table: `results/ablation_table.csv`.
 
 ### r=16 training run (Saturday PM-3)
 
@@ -249,7 +259,7 @@ halves generation time.
 - [x] First fine-tuned LoRA adapter (r=16) — eval still pending
 - [ ] Two more fine-tuned LoRA adapters (r=8, r=32)
 - [ ] All three adapters scored against `eval.jsonl`
-- [ ] `results/ablation_table.csv` + `rank_vs_rouge.png`
+- [x] `results/ablation_table.csv` + `rank_vs_rouge.png`
 - [ ] `results/failure_analysis.md` (5 categorized failures)
 - [ ] Public W&B dashboard
 - [ ] (Stretch) Eval dataset + best adapter pushed to HuggingFace Hub
