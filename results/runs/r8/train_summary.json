@@ -1,0 +1,8 @@
+{
+  "run_name": "r8",
+  "final_loss": 1.4328725624084473,
+  "global_step": 375,
+  "num_examples": 1000,
+  "adapter_path": "/content/LLM_Finetune/models/adapters/r8",
+  "base_model": "unsloth/mistral-7b-v0.3-bnb-4bit"
+}

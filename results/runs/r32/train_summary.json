@@ -1,0 +1,8 @@
+{
+  "run_name": "r32",
+  "final_loss": 1.2369346733093263,
+  "global_step": 375,
+  "num_examples": 1000,
+  "adapter_path": "/content/LLM_Finetune/models/adapters/r32",
+  "base_model": "unsloth/mistral-7b-v0.3-bnb-4bit"
+}

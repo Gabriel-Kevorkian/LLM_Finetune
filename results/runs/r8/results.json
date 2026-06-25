@@ -1,0 +1,94 @@
+{
+  "run_name": "r8",
+  "model_id": "unsloth/mistral-7b-v0.3-bnb-4bit+adapter:models/adapters/r8",
+  "num_examples": 50,
+  "use_llm_judge": true,
+  "aggregate": {
+    "n": 50,
+    "rouge1": 0.275922,
+    "rougeL": 0.192272,
+    "exact_match": 0.0,
+    "judge_score": 3.02
+  },
+  "by_category": {
+    "commands": {
+      "n": 11,
+      "rouge1": 0.3277,
+      "rougeL": 0.23786363636363636,
+      "exact_match": 0.0,
+      "judge_score": 3.5454545454545454
+    },
+    "compose": {
+      "n": 5,
+      "rouge1": 0.35274,
+      "rougeL": 0.21586,
+      "exact_match": 0.0,
+      "judge_score": 3.6
+    },
+    "dockerfile": {
+      "n": 13,
+      "rouge1": 0.20690769230769232,
+      "rougeL": 0.14423076923076922,
+      "exact_match": 0.0,
+      "judge_score": 2.769230769230769
+    },
+    "images": {
+      "n": 4,
+      "rouge1": 0.3254,
+      "rougeL": 0.220775,
+      "exact_match": 0.0,
+      "judge_score": 3.25
+    },
+    "networking": {
+      "n": 4,
+      "rouge1": 0.287525,
+      "rougeL": 0.1983,
+      "exact_match": 0.0,
+      "judge_score": 2.5
+    },
+    "security": {
+      "n": 5,
+      "rouge1": 0.2926,
+      "rougeL": 0.18584,
+      "exact_match": 0.0,
+      "judge_score": 3
+    },
+    "troubleshooting": {
+      "n": 4,
+      "rouge1": 0.222775,
+      "rougeL": 0.172075,
+      "exact_match": 0.0,
+      "judge_score": 2.75
+    },
+    "volumes": {
+      "n": 4,
+      "rouge1": 0.233025,
+      "rougeL": 0.18725,
+      "exact_match": 0.0,
+      "judge_score": 2.25
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "n": 18,
+      "rouge1": 0.30086111111111113,
+      "rougeL": 0.22086666666666666,
+      "exact_match": 0.0,
+      "judge_score": 3.388888888888889
+    },
+    "medium": {
+      "n": 26,
+      "rouge1": 0.2675423076923077,
+      "rougeL": 0.1819923076923077,
+      "exact_match": 0.0,
+      "judge_score": 2.923076923076923
+    },
+    "hard": {
+      "n": 6,
+      "rouge1": 0.23741666666666666,
+      "rougeL": 0.15103333333333332,
+      "exact_match": 0.0,
+      "judge_score": 2.3333333333333335
+    }
+  }
+}

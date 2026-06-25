@@ -1,0 +1,57 @@
+# =============================================================================
+# Ablation config — LoRA rank = 32 (README §3, Sun AM-2).
+# =============================================================================
+#
+# THE ONE-VARIABLE RULE:
+#   This file is IDENTICAL to configs/base.yaml except for three coupled lines:
+#     run_name   (r32, so outputs don't collide with r16)
+#     lora_rank  (32 instead of 16 — the variable under test)
+#     lora_alpha (32, kept equal to rank — see below)
+#   Every other knob (lr, epochs, batch, grad-accum, warmup, SEED, seq_len,
+#   target_modules, dropout) is copied verbatim from base.yaml. That is what
+#   makes the r=8 / r=16 / r=32 comparison a clean ablation: change rank, hold
+#   everything else fixed.
+#
+# WHY alpha == rank (and not a fixed alpha=16 across all runs):
+#   The LoRA update is scaled by (alpha / rank): out = W·x + (alpha/rank)·(B·A)·x.
+#   If we held alpha=16 while varying rank, the SCALING would change too
+#   (16/8=2.0 vs 16/16=1.0 vs 16/32=0.5) and we'd be ablating two things at
+#   once — capacity AND update magnitude. Setting alpha=rank keeps the scale
+#   fixed at 1.0 for every run, so rank (capacity) is the sole variable.
+#   base.yaml already follows this alpha==rank convention.
+#
+# NOTE: r=32 doubles the trainable params vs r=16 (~84M vs ~42M). Still a tiny
+#   fraction of the 7B base and fits fine on a T4 — expect a slightly longer
+#   run, not an OOM.
+# =============================================================================
+
+run_name: r32
+
+# ----- LoRA hyperparameters (THE ablation variable) --------------------------
+lora_rank:    32
+lora_alpha:   32         # kept == rank to hold scaling (alpha/rank) at 1.0
+lora_dropout: 0.0
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# ----- Optimizer + schedule (IDENTICAL to base.yaml) -------------------------
+learning_rate: 2.0e-4
+num_epochs:    3
+per_device_batch_size: 2
+grad_accum_steps:      4
+warmup_steps:  10
+seed: 42                 # MUST match base.yaml — same seed isolates rank from luck
+
+# ----- Sequence length (IDENTICAL to base.yaml) ------------------------------
+max_seq_length: 2048
+
+# ----- Logging + I/O (IDENTICAL to base.yaml) --------------------------------
+logging_steps: 5
+save_steps:    0
+wandb_enabled: false
