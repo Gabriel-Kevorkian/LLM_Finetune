@@ -125,10 +125,19 @@ arguments). Partial knowledge, no clean mental model. Severity: **medium**.
 
 | # | Fix | Cost | Expected impact |
 |---|-----|------|-----------------|
-| 1 | **Add `repetition_penalty≈1.2` and/or `no_repeat_ngram_size=3` at inference** and re-run eval | ~free (no retrain, 1 eval pass) | Directly targets modes 1–2 (the 7 runaway judge=2 cases + likely lifts several 3s) |
+| 1 | **Add `repetition_penalty≈1.2` and `no_repeat_ngram_size=3` at inference** and re-run eval | ~free (no retrain, 1 eval pass) | Directly targets modes 1–2 (the 7 runaway judge=2 cases + likely lifts several 3s) |
 | 2 | **Curate training answers to end crisply** (trim to the answer, ensure each ends with `eos_token`) | medium (data prep + 1 retrain) | Strengthens EOS, reduces loops at the source |
 | 3 | **Targeted data augmentation** for the rank-independent gaps: BuildKit secrets, Compose `healthcheck`/`service_healthy`, ENTRYPOINT/CMD exec-form | medium | Only thing that moves modes 3–5 |
 | 4 | Keep **r=32** as the shipped adapter | done | Best on every metric; rank already maxed for this data |
+
+**Status of fix #1:** the repetition controls are now wired into the eval code —
+`config.EVAL_REPETITION_PENALTY = 1.2` and `EVAL_NO_REPEAT_NGRAM_SIZE = 3`, read by
+*both* `scripts/02_baseline_eval.py` and `scripts/05_eval_finetuned.py`. They are
+**not yet reflected in the committed numbers**: the results under `results/` were
+all produced with pure greedy decoding (pre-fix) and remain mutually comparable.
+Validating the fix would require one fresh Colab pass over *both* the baseline and
+the r=32 adapter (to keep the comparison fair) — deliberately deferred here, so the
+improvement is a documented, ready-to-run hypothesis rather than a measured result.
 
 **Bottom line:** the fine-tune clearly worked (judge 2.28 → 3.24, ROUGE-1 +131%),
 but the remaining failures split cleanly into a cheap decoding fix (repetition,

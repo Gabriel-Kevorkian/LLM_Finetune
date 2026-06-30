@@ -166,6 +166,25 @@ SEED                  = 42
 EVAL_TEMPERATURE      = 0.0
 EVAL_MAX_NEW_TOKENS   = 512    # cap answer length so eval doesn't hang
 
+# Repetition controls. The failure analysis (results/failure_analysis.md) found
+# that pure greedy decoding sends the model into runaway repetition loops on
+# ~14/50 questions — it emits the correct first sentence, then repeats a phrase
+# (sometimes drifting into fabricated flags/text) until it hits the token cap.
+# A small repetition_penalty (>1.0 down-weights tokens already generated) plus a
+# hard no-repeat n-gram block is the standard, near-free fix.
+#   - 1.2 is a moderate value: strong enough to break loops, gentle enough not
+#     to distort legitimate term reuse (e.g. "Docker", "container") in a real answer.
+#   - no_repeat_ngram_size=3 forbids any 3-gram from appearing twice verbatim,
+#     which kills the "It is for the X to..." style loops outright.
+# IMPORTANT (fairness): both the baseline (scripts/02) and fine-tuned (scripts/05)
+# generators read these same constants, so a *fresh* eval of both stays
+# apples-to-apples. The results currently committed under results/ were produced
+# BEFORE this change (pure greedy) — they remain mutually comparable to each
+# other, but are NOT comparable to any future run made with these penalties.
+# Re-running one side therefore means re-running the baseline too.
+EVAL_REPETITION_PENALTY   = 1.2
+EVAL_NO_REPEAT_NGRAM_SIZE = 3
+
 # Model used as the LLM-judge. gemini-3.1-flash-lite is on Google's free
 # tier at 15 RPM AND 500 RPD — enough to cover all 200 judge calls for the
 # weekend (baseline + 3 ablations × 50 questions) in a single day, with

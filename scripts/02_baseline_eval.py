@@ -108,6 +108,11 @@ def make_real_generate_fn(model_name: str):
                 max_new_tokens=config.EVAL_MAX_NEW_TOKENS,
                 do_sample=False,          # greedy = deterministic
                 temperature=config.EVAL_TEMPERATURE,
+                # Same repetition controls as the fine-tuned eval (scripts/05)
+                # so baseline-vs-finetuned stays apples-to-apples on any fresh
+                # run. See config.EVAL_REPETITION_PENALTY notes.
+                repetition_penalty=config.EVAL_REPETITION_PENALTY,
+                no_repeat_ngram_size=config.EVAL_NO_REPEAT_NGRAM_SIZE,
                 pad_token_id=tokenizer.eos_token_id,
             )
 

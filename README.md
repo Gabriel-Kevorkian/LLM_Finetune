@@ -206,7 +206,9 @@ greedy generation with no repetition penalty sends the model into runaway loops
 (14/50 outputs repeat; avg prediction 932 chars vs 373-char references), so even
 *easy* questions like `FROM` get the first sentence right then degrade. The cheapest
 high-value fix in the whole project is a one-line inference change
-(`repetition_penalty≈1.2`) + a re-eval, no retrain. **The other half are genuine
+(`repetition_penalty≈1.2`) + a re-eval, no retrain — now **wired into the eval code**
+(`config.EVAL_REPETITION_PENALTY`, used by both `scripts/02` and `scripts/05`), though
+the committed numbers above predate it and were left as-is (no re-eval). **The other half are genuine
 knowledge gaps** — build secrets (recommends the `--build-arg` anti-pattern),
 Compose `depends_on` readiness, and ENTRYPOINT⊕CMD exec-form semantics fail at
 *every* rank, so only targeted training data (not more LoRA capacity) will move them.

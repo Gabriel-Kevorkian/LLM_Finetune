@@ -120,6 +120,11 @@ def make_finetuned_generate_fn(adapter_path: str, base_model_name: str):
                 max_new_tokens=config.EVAL_MAX_NEW_TOKENS,
                 do_sample=False,          # greedy = deterministic
                 temperature=config.EVAL_TEMPERATURE,
+                # Break the runaway-repetition loops from the failure analysis.
+                # Same constants used by the baseline (scripts/02) so the runs
+                # stay comparable. See config.EVAL_REPETITION_PENALTY notes.
+                repetition_penalty=config.EVAL_REPETITION_PENALTY,
+                no_repeat_ngram_size=config.EVAL_NO_REPEAT_NGRAM_SIZE,
                 pad_token_id=tokenizer.eos_token_id,
             )
 
